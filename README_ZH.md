@@ -61,17 +61,18 @@ Task: Improve the script from last time
 (Agent recalls previous session context from injected memory)
 ```
 
-### 示例 3：安全守卫拦截危险操作
+### 示例 3：安全守卫拦截危险写入
 
-当 Agent 尝试执行高危代码时，守卫会暂停并请求人工确认：
+当 Agent 尝试写入包含危险操作的代码时，守卫会暂停并请求人工确认：
 
 ```
-[HARNESS] Step 2/10 — Agent thinking...
+[HARNESS] Step 1/10 — Agent thinking...
 
 =======================================================
-  [HARNESS GUARD] ⚠️  HIGH RISK
-  Tool   : run_python
-  code    : import shutil; shutil.rmtree('/tmp/sandbox')
+  [HARNESS GUARD] 📝 WRITE OP
+  Tool   : write_file
+  filename: cleanup.py
+  content : import shutil; shutil.rmtree('/tmp/sandbox')
 =======================================================
   Approve? (yes / no): no
   ❌ Rejected. Operation cancelled.

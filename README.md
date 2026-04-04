@@ -61,17 +61,18 @@ Task: Improve the script from last time
 (Agent recalls previous session context from injected memory)
 ```
 
-### Example 3: Safety guard blocks a dangerous operation
+### Example 3: Safety guard blocks a dangerous write
 
-When the agent attempts to execute high-risk code, the guard pauses and requests human confirmation:
+When the agent attempts to write code containing dangerous operations, the guard pauses and requests human confirmation:
 
 ```
-[HARNESS] Step 2/10 — Agent thinking...
+[HARNESS] Step 1/10 — Agent thinking...
 
 =======================================================
-  [HARNESS GUARD] ⚠️  HIGH RISK
-  Tool   : run_python
-  code    : import shutil; shutil.rmtree('/tmp/sandbox')
+  [HARNESS GUARD] 📝 WRITE OP
+  Tool   : write_file
+  filename: cleanup.py
+  content : import shutil; shutil.rmtree('/tmp/sandbox')
 =======================================================
   Approve? (yes / no): no
   ❌ Rejected. Operation cancelled.
