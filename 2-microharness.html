@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MicroHarness — LangGraph + Claude Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #fafaf8;
+    --bg-code: #f4f4f0;
+    --surface: #f5f5fa;
+    --surface2: #ececf4;
+    --border: #e2e2ea;
+    --border-strong: #c8c8d8;
+    --accent: #5046e5;
+    --accent-light: rgba(80,70,229,0.08);
+    --accent2: #e8365d;
+    --accent3: #0ea55a;
+    --accent4: #d97706;
+    --text: #1a1a1a;
+    --text-muted: #55556a;
+    --text-dim: #9999b0;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --serif: 'DM Serif Display', serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  .container { max-width: 920px; margin: 0 auto; padding: 0 2rem; }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 5rem 0 4rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); animation: pulse 2s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 1.25rem;
+  }
+
+  h1 .highlight {
+    font-style: italic;
+    background: linear-gradient(120deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-desc {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin-bottom: 2rem;
+  }
+
+  .hero-badges {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: var(--bg-soft);
+  }
+
+  .badge.primary { background: var(--accent-light); color: var(--accent); border-color: rgba(80,70,229,0.2); }
+  .badge.green { background: rgba(14,165,90,0.08); color: var(--accent3); border-color: rgba(14,165,90,0.2); }
+
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    background: var(--accent);
+    color: white;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: background 0.2s, transform 0.2s;
+  }
+
+  .download-btn:hover { background: #3d34d4; transform: translateY(-1px); }
+
+  /* ── SECTIONS ── */
+  section { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+  section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    font-weight: 400;
+    margin-bottom: 1.25rem;
+    line-height: 1.25;
+  }
+
+  p { color: var(--text-muted); margin-bottom: 0.9rem; }
+  strong { color: var(--text); }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 1.25rem 0;
+    position: relative;
+  }
+
+  .code-block .code-label {
+    position: absolute;
+    top: 0.6rem; right: 0.75rem;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .code-block .c { color: #888; }         /* comments */
+  .code-block .k { color: var(--accent); } /* keywords */
+  .code-block .s { color: var(--accent3); } /* strings */
+  .code-block .f { color: var(--accent2); } /* function names */
+  .code-block .cmd { color: var(--accent4); } /* shell commands */
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch-diagram {
+    margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .arch-node {
+    width: 100%;
+    max-width: 520px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+  }
+
+  .arch-node:hover { border-color: var(--accent); background: var(--accent-light); }
+
+  .arch-connector {
+    width: 2px;
+    height: 2rem;
+    background: var(--border-strong);
+    position: relative;
+  }
+
+  .arch-connector::after {
+    content: '↓';
+    position: absolute;
+    bottom: -0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    background: var(--bg);
+    padding: 0 2px;
+  }
+
+  .arch-icon {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .icon-agent  { background: rgba(80,70,229,0.12); }
+  .icon-guard  { background: rgba(232,54,93,0.1); }
+  .icon-tools  { background: rgba(14,165,90,0.1); }
+  .icon-user   { background: rgba(217,119,6,0.1); }
+  .icon-loop   { background: rgba(80,70,229,0.06); }
+
+  .arch-info {}
+  .arch-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.15rem; }
+  .arch-desc { font-size: 0.8rem; color: var(--text-muted); }
+
+  .arch-name.purple { color: var(--accent); }
+  .arch-name.red    { color: var(--accent2); }
+  .arch-name.green  { color: var(--accent3); }
+  .arch-name.amber  { color: var(--accent4); }
+
+  /* ── FILE STRUCTURE ── */
+  .file-tree {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.9;
+    margin: 1.5rem 0;
+  }
+
+  .file-tree .dir { color: var(--text); font-weight: 700; }
+  .file-tree .file { color: var(--text-muted); }
+  .file-tree .file-desc { color: var(--text-dim); font-size: 0.75rem; margin-left: 0.5rem; }
+  .file-tree .accent { color: var(--accent); }
+  .file-tree .green { color: var(--accent3); }
+  .file-tree .red { color: var(--accent2); }
+  .file-tree .amber { color: var(--accent4); }
+
+  /* ── FOUR LAYERS GRID ── */
+  .layers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .layer-card {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.15s;
+    cursor: default;
+  }
+
+  .layer-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .layer-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .layer-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .layer-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.3rem; }
+  .layer-file { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); margin-bottom: 0.4rem; }
+  .layer-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── GUARD FLOW ── */
+  .guard-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .gf-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    transition: background 0.15s;
+  }
+
+  .gf-row:last-child { border-bottom: none; }
+  .gf-row:hover { background: var(--bg-soft); }
+
+  .gf-tool {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    min-width: 9rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .gf-arrow { color: var(--text-dim); flex-shrink: 0; }
+  .gf-result { color: var(--text-muted); }
+  .gf-result strong { color: var(--text); }
+
+  .tool-write { background: rgba(232,54,93,0.08); color: var(--accent2); border: 1px solid rgba(232,54,93,0.2); }
+  .tool-run   { background: rgba(217,119,6,0.08); color: var(--accent4); border: 1px solid rgba(217,119,6,0.2); }
+  .tool-list  { background: rgba(14,165,90,0.08); color: var(--accent3); border: 1px solid rgba(14,165,90,0.2); }
+
+  /* ── SCRIPT SECTION ── */
+  .script-section {
+    background: var(--bg-soft);
+    border-top: 3px solid var(--accent);
+    padding: 3rem 0;
+  }
+
+  .script-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent4);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .script-meta {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+  }
+
+  .script-body {
+    font-size: 1rem;
+    line-height: 2;
+    color: var(--text-muted);
+  }
+
+  .script-body h3 {
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--text);
+    margin: 2rem 0 0.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--border);
+  }
+
+  .script-body h3:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+
+  .script-body .pause {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    margin: 0 0.2rem;
+    vertical-align: middle;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0.5rem 0; }
+
+  /* ── FOOTER ── */
+  footer { padding: 2rem 0; text-align: center; border-top: 1px solid var(--border); }
+  footer p { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); margin: 0; }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 600px) {
+    .layers-grid { grid-template-columns: 1fr 1fr; }
+    .gf-tool { min-width: 7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ── HERO ── -->
+  <div class="hero reveal">
+    <div class="hero-eyebrow">
+      <span class="hero-dot"></span>
+      Open Source Demo · LangGraph · Claude
+    </div>
+    <h1>MicroHarness<br><span class="highlight">最小可运行实现</span></h1>
+    <p class="hero-desc">用 LangGraph + Claude 从零搭建一个真实的 Agent Harness demo，覆盖五个核心层，支持 Anthropic / DeepSeek / Kimi / Qwen / GLM / MiniMax / OpenAI 多模型切换。理解原理，不靠黑盒。</p>
+    <div class="hero-badges">
+      <span class="badge primary">LangGraph</span>
+      <span class="badge primary">Multi-Provider</span>
+      <span class="badge green">Human-in-the-Loop</span>
+      <span class="badge green">Long-Term Memory</span>
+      <span class="badge">Sandbox Execution</span>
+      <span class="badge">MIT License</span>
+    </div>
+
+  </div>
+
+  <!-- ── SECTION 1: 为什么要自己搭 ── -->
+  <section class="reveal">
+    <div class="section-label">// 01 · 背景</div>
+    <h2>为什么要自己搭，而不是直接用 DeepAgents？</h2>
+
+    <p>DeepAgents、Claude Code 这类工具帮你打包好了一切——开箱即用，但你看不到里面在干什么。</p>
+    <p><strong>自己搭的价值在于：每一层你都能看见、修改、替换。</strong>这是学习 Harness 原理最直接的方式，也是日后为你的供应链平台定制 Harness 的基础。</p>
+    <p>这个 demo 刻意保持最小——9 个文件，不到 400 行代码，完整覆盖 Harness 的5个核心概念，包括跨会话的长期记忆持久化，以及支持八个模型 Provider 的统一配置层。</p>
+  </section>
+
+  <!-- ── SECTION 2: 快速开始 ── -->
+  <section class="reveal">
+    <div class="section-label">// 02 · 快速开始</div>
+    <h2>三步跑起来</h2>
+
+    <div class="code-block">
+      <span class="code-label">bash</span>
+<span class="c"># 1. 下载zip文件解压，或者git clone后进入目录</span>
+unzip microharness.zip && cd microharness
+
+<span class="c"># 2. 安装核心依赖</span>
+pip install -r requirements.txt
+
+<span class="c"># 3. 非 Anthropic provider 额外安装</span>
+pip install langchain-openai  <span class="c"># DeepSeek / Kimi / Qwen / GLM / MiniMax / OpenAI / MiMo</span>
+
+<span class="c"># 4. 编辑 .env，配置 Provider 和 API Key</span>
+<span class="c"># 5. 运行</span>
+python harness.py
+    </div>
+
+    <p>启动后输入任务，例如：</p>
+
+    <div class="code-block">
+      <span class="code-label">example</span>
+Task: <span class="s">Write a Python script that prints Fibonacci numbers up to 100, then run it</span>
+    </div>
+
+    <p>Harness 会自动：写文件 → 守卫拦截请求你确认 → 你批准 → 执行 → 读取结果 → 返回总结。</p>
+  </section>
+
+  <!-- ── SECTION 3: 文件结构 ── -->
+  <section class="reveal">
+    <div class="section-label">// 03 · 项目结构</div>
+    <h2>9 个文件，6 个层级</h2>
+
+    <div class="file-tree">
+      <div class="dir">microharness/</div>
+      <div>├── <span class="accent file">harness.py</span>    <span class="file-desc">主入口 —— LangGraph 图定义、路由、生命周期控制</span></div>
+      <div>├── <span class="accent file">config.py</span>     <span class="file-desc">配置层 —— 读取 .env，按 provider 构建 LLM 实例</span></div>
+      <div>├── <span class="amber file">prompts.py</span>    <span class="file-desc">提示管理层 —— 系统提示注入 + 长期记忆追加</span></div>
+      <div>├── <span class="green file">tools.py</span>      <span class="file-desc">工具调度层 —— 6 个工具，按安全等级分级</span></div>
+      <div>├── <span class="red file">guard.py</span>       <span class="file-desc">安全守卫层 —— human-in-the-loop 三级拦截</span></div>
+      <div>├── <span class="accent file">memory.py</span>    <span class="file-desc">长期记忆层 —— 提炼摘要、跨会话持久化</span></div>
+      <div>├── <span class="file">.env</span>          <span class="file-desc">用户配置文件 —— Provider / Key / 模型名</span></div>
+      <div>├── <span class="file">memory.json</span>   <span class="file-desc">自动生成 —— 跨会话记忆持久化文件</span></div>
+      <div>└── <span class="file">requirements.txt</span> <span class="file-desc">依赖声明</span></div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4: 四层架构 ── -->
+  <section class="reveal">
+    <div class="section-label">// 04 · 核心架构</div>
+    <h2>Harness 的五个层级 + 配置层</h2>
+
+    <p>这个 demo 把每个概念拆分到独立文件，每层只做一件事。新增 <code style="font-family:var(--mono);font-size:0.85em;background:var(--bg-code);padding:0.1rem 0.4rem;border-radius:3px;">config.py</code> 作为统一配置入口，其他模块不直接读环境变量：</p>
+
+    <div class="layers-grid">
+      <div class="layer-card">
+        <div class="layer-num">CONFIG</div>
+        <div class="layer-icon">⚙️</div>
+        <div class="layer-name">配置管理</div>
+        <div class="layer-file">config.py + .env</div>
+        <div class="layer-desc">读取 .env，按 PROVIDER 构建 LLM 实例。支持 8 个 Provider，用户只改 .env</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-num">LAYER 01</div>
+        <div class="layer-icon">📋</div>
+        <div class="layer-name">提示管理</div>
+        <div class="layer-file">prompts.py</div>
+        <div class="layer-desc">每次启动时注入系统提示，并自动追加长期记忆，定义模型角色和操作边界</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-num">LAYER 02</div>
+        <div class="layer-icon">🛠️</div>
+        <div class="layer-name">工具调度</div>
+        <div class="layer-file">tools.py</div>
+        <div class="layer-desc">6 个工具按安全等级分级，沙箱隔离，输出自动截断防止上下文爆炸</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-num">LAYER 03</div>
+        <div class="layer-icon">🛡️</div>
+        <div class="layer-name">安全守卫</div>
+        <div class="layer-file">guard.py</div>
+        <div class="layer-desc">三级分类：自动放行 / 强制确认 / 关键词检测，拒绝后中止执行</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-num">LAYER 04</div>
+        <div class="layer-icon">🔄</div>
+        <div class="layer-name">生命周期</div>
+        <div class="layer-file">harness.py</div>
+        <div class="layer-desc">MAX_STEPS 硬性上限，路由控制循环，达到上限优雅退出</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-num">LAYER 05</div>
+        <div class="layer-icon">🧠</div>
+        <div class="layer-name">长期记忆</div>
+        <div class="layer-file">memory.py</div>
+        <div class="layer-desc">会话结束后调用记忆模型提炼摘要，写入 memory.json，下次启动自动注入</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 5: LangGraph 图 ── -->
+  <section class="reveal">
+    <div class="section-label">// 05 · 执行流程</div>
+    <h2>LangGraph 图的运转方式</h2>
+
+    <p>整个 Harness 是一个 LangGraph <code style="font-family:var(--mono);font-size:0.85em;background:var(--bg-code);padding:0.1rem 0.4rem;border-radius:3px;">StateGraph</code>，节点之间通过条件路由连接：</p>
+
+    <div class="arch-diagram">
+      <div class="arch-node">
+        <div class="arch-icon icon-user">👤</div>
+        <div class="arch-info">
+          <div class="arch-name amber">User Input</div>
+          <div class="arch-desc">任务输入 + 初始化 State（step_count=0）</div>
+        </div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-icon icon-agent">🤖</div>
+        <div class="arch-info">
+          <div class="arch-name purple">agent_node</div>
+          <div class="arch-desc">注入系统提示（含长期记忆）→ 模型推理 → step_count +1</div>
+        </div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-icon icon-guard">🛡️</div>
+        <div class="arch-info">
+          <div class="arch-name red">guard_node</div>
+          <div class="arch-desc">检查工具调用 → 写操作拦截 → 等待人工 yes/no</div>
+        </div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-icon icon-tools">🛠️</div>
+        <div class="arch-info">
+          <div class="arch-name green">tool_node</div>
+          <div class="arch-desc">执行工具（write_file / run_python / list_files）→ 结果写回 State</div>
+        </div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-icon icon-loop">🔁</div>
+        <div class="arch-info">
+          <div class="arch-name purple">→ 回到 agent_node</div>
+          <div class="arch-desc">继续推理，直到任务完成或达到 MAX_STEPS</div>
+        </div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-icon" style="background:rgba(80,70,229,0.1);">🧠</div>
+        <div class="arch-info">
+          <div class="arch-name purple">memory.extract_and_save()</div>
+          <div class="arch-desc">会话结束 → Haiku 提炼摘要 → 写入 memory.json → 下次启动注入提示</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 6: 守卫逻辑 ── -->
+  <section class="reveal">
+    <div class="section-label">// 06 · 安全守卫详解</div>
+    <h2>哪些操作会被拦截？</h2>
+
+    <p>守卫层对不同工具有不同策略——这是 Harness 和普通 Agent 最关键的区别：</p>
+
+    <div class="guard-flow">
+      <div class="gf-row">
+        <span class="gf-tool tool-list">list_files</span>
+        <span class="gf-arrow">→</span>
+        <span class="gf-result"><strong style="color:var(--accent3)">✅ 自动放行</strong> — 只读，无副作用</span>
+      </div>
+      <div class="gf-row">
+        <span class="gf-tool tool-write">write_file</span>
+        <span class="gf-arrow">→</span>
+        <span class="gf-result"><strong style="color:var(--accent2)">⏸ 强制确认</strong> — 写操作，默认拦截，等待 yes/no</span>
+      </div>
+      <div class="gf-row">
+        <span class="gf-tool tool-run">run_python</span>
+        <span class="gf-arrow">→</span>
+        <span class="gf-result"><strong style="color:var(--accent4)">⚠ 关键词检测</strong> — 含 rm/DELETE/rmtree 等则拦截</span>
+      </div>
+    </div>
+
+    <p>拒绝后 Harness 路由到 <code style="font-family:var(--mono);font-size:0.85em;background:var(--bg-code);padding:0.1rem 0.4rem;border-radius:3px;">END</code>，不会继续执行任何工具调用。</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── SECTION 6.5: 多模型支持 ── -->
+  <section class="reveal">
+    <div class="section-label">// 06.5 · 多模型支持</div>
+    <h2>切换 Provider 只需改 .env</h2>
+
+    <p>所有 Provider 的切换逻辑集中在 <code style="font-family:var(--mono);font-size:0.85em;background:var(--bg-code);padding:0.1rem 0.4rem;border-radius:3px;">config.py</code>，用户不需要看代码，只改 <code style="font-family:var(--mono);font-size:0.85em;background:var(--bg-code);padding:0.1rem 0.4rem;border-radius:3px;">.env</code> 的三行：</p>
+
+    <div class="code-block">
+      <span class="code-label">.env — 以 DeepSeek 为例</span>
+PROVIDER=deepseek
+OPENAI_COMPATIBLE_API_KEY=your_deepseek_key
+MAIN_MODEL=deepseek-chat
+    </div>
+
+    <table class="compare-table">
+      <tr>
+        <th>Provider</th>
+        <th>PROVIDER=</th>
+        <th>常用 MAIN_MODEL</th>
+        <th>Base URL（内置）</th>
+      </tr>
+      <tr>
+        <td>Anthropic</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">anthropic</code></td>
+        <td>claude-sonnet-4-20250514</td>
+        <td>—</td>
+      </tr>
+      <tr class="highlight-row">
+        <td>DeepSeek</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">deepseek</code></td>
+        <td>deepseek-chat</td>
+        <td>api.deepseek.com</td>
+      </tr>
+      <tr>
+        <td>Kimi</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">kimi</code></td>
+        <td>moonshot-v1-8k</td>
+        <td>api.moonshot.cn/v1</td>
+      </tr>
+      <tr class="highlight-row">
+        <td>Qwen</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">qwen</code></td>
+        <td>qwen-plus</td>
+        <td>dashscope.aliyuncs.com/...</td>
+      </tr>
+      <tr>
+        <td>GLM</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">glm</code></td>
+        <td>glm-4-air</td>
+        <td>open.bigmodel.cn/...</td>
+      </tr>
+      <tr class="highlight-row">
+        <td>MiniMax</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">minimax</code></td>
+        <td>abab6.5s-chat</td>
+        <td>api.minimax.chat/v1</td>
+      </tr>
+      <tr>
+        <td>OpenAI</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">openai</code></td>
+        <td>gpt-4o</td>
+        <td>api.openai.com/v1</td>
+      </tr>
+      <tr>
+        <td>自定义</td>
+        <td><code style="font-family:var(--mono);font-size:0.85em;">任意值</code></td>
+        <td>—</td>
+        <td>OPENAI_COMPATIBLE_BASE_URL 填入</td>
+      </tr>
+    </table>
+
+    <p style="font-size:0.88rem; margin-top:0.5rem;">非 Anthropic provider 需额外安装：<code style="font-family:var(--mono);font-size:0.85em;background:var(--bg-code);padding:0.1rem 0.4rem;border-radius:3px;">pip install langchain-openai</code></p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── SECTION 7: 扩展方向 ── -->
+  <section class="reveal">
+    <div class="section-label">// 07 · 下一步</div>
+    <h2>从这里往哪里扩展？</h2>
+
+    <div class="layers-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+      <div class="layer-card">
+        <div class="layer-icon">🐳</div>
+        <div class="layer-name">真实沙箱隔离</div>
+        <div class="layer-desc">把 <code style="font-family:var(--mono);font-size:0.8em;">/tmp/sandbox</code> 替换成 Docker 容器，代码执行完全隔离，不影响宿主机</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-icon">📱</div>
+        <div class="layer-name">异步审批通知</div>
+        <div class="layer-desc">把 <code style="font-family:var(--mono);font-size:0.8em;">request_human_approval</code> 改为企业微信/钉钉推送，支持移动端审批</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-icon">🔗</div>
+        <div class="layer-name">接入供应链工具</div>
+        <div class="layer-desc">在 <code style="font-family:var(--mono);font-size:0.8em;">tools.py</code> 里加入你的业务 API，Agent 就能操作真实业务数据</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-icon">🗃️</div>
+        <div class="layer-name">升级记忆后端</div>
+        <div class="layer-desc">把 <code style="font-family:var(--mono);font-size:0.8em;">memory.json</code> 替换成 PostgreSQL 或向量数据库，支持语义检索历史记忆</div>
+      </div>
+      <div class="layer-card">
+        <div class="layer-icon">📦</div>
+        <div class="layer-name">换成 DeepAgents</div>
+        <div class="layer-desc">理解原理后，直接 <code style="font-family:var(--mono);font-size:0.8em;">pip install deepagents</code>，用现成 Harness 替代手动搭建</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>MicroHarness v2 · LangGraph + Claude · MIT License · 2026.03</p>
+  </div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

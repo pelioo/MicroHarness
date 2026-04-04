@@ -1,0 +1,9 @@
+# 核心依赖（必装）
+langgraph>=0.2.0
+langchain-core>=0.2.0
+langchain-anthropic>=0.1.0   # PROVIDER=anthropic 时使用
+typing_extensions>=4.0.0
+
+# OpenAI 兼容 provider 依赖（PROVIDER != anthropic 时需要）
+# pip install langchain-openai
+# langchain-openai>=0.1.0
