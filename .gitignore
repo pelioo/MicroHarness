@@ -8,3 +8,6 @@ memory.json
 
 # 排除的文件夹 
 .snapshots/
+python/
+.venv/
+
