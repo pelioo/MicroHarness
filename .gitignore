@@ -5,3 +5,6 @@ __pycache__/
 .claude/
 docs/
 memory.json
+
+# 排除的文件夹 
+.snapshots/
